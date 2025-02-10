@@ -29,6 +29,10 @@ export class PayoutController {
     status: HttpStatus.NOT_FOUND,
     description: 'Shop not found',
   })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Payout is already in progress. Please try again later.',
+  })
   async processPayout(
     @Param('storeId') storeId: string,
   ): Promise<ProcessPayoutResponseDto> {

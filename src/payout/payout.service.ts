@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
 import { PaymentService } from '../payment/payment.service';
 import { Store } from '../store/entities/store.entity';
@@ -10,6 +10,8 @@ import { ProcessPayoutResponseDto } from './dto/payout-response.dto';
 
 @Injectable()
 export class PayoutService {
+  private isPayoutInProgress = false;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly paymentService: PaymentService,
@@ -51,49 +53,62 @@ export class PayoutService {
    * @returns ProcessPayoutResponseDto
    */
   async processPayout(store: Store): Promise<ProcessPayoutResponseDto> {
-    const config = await this.configService.getConfig();
-    const payments: ProcessPayoutResponseDto = {
-      totalPayout: 0,
-      listPayments: [],
-    };
-
-    const shopPayments: Payment[] =
-      await this.paymentService.getEligiblePayments(store);
-
-    let totalAvailable: number = 0;
-    const paymentDetails: PaymentDetails[] = [];
-
-    for (const payment of shopPayments) {
-      const netPayout = this.calculateNetPayout(store, payment, config);
-      const available = this.calculateAvailable(payment, netPayout, config);
-      totalAvailable += available;
-      paymentDetails.push({ payment, netPayout, available });
+    if (this.isPayoutInProgress) {
+      throw new HttpException(
+        'Payout is already in progress. Please try again later.',
+        HttpStatus.CONFLICT,
+      );
     }
 
-    for (const { netPayout, payment, available } of paymentDetails) {
-      if (
-        (netPayout > 0 && totalAvailable - netPayout >= 0) ||
-        (netPayout > 0 && available === 0)
-      ) {
-        const newStatus =
-          payment.status === PaymentStatus.EXECUTED
-            ? PaymentStatus.PAID
-            : PaymentStatus.PROCESSED;
+    this.isPayoutInProgress = true;
 
-        await this.paymentService.payout({
-          paymentId: payment.id,
-          status: newStatus,
-          paidAmount: netPayout,
-        });
+    try {
+      const config = await this.configService.getConfig();
+      const payments: ProcessPayoutResponseDto = {
+        totalPayout: 0,
+        listPayments: [],
+      };
 
-        if (available > 0) {
-          totalAvailable -= netPayout;
-          payments.totalPayout += netPayout;
-          payments.listPayments.push({ id: payment.id, payout: netPayout });
+      const shopPayments: Payment[] =
+        await this.paymentService.getEligiblePayments(store);
+
+      let totalAvailable: number = 0;
+      const paymentDetails: PaymentDetails[] = [];
+
+      for (const payment of shopPayments) {
+        const netPayout = this.calculateNetPayout(store, payment, config);
+        const available = this.calculateAvailable(payment, netPayout, config);
+        totalAvailable += available;
+        paymentDetails.push({ payment, netPayout, available });
+      }
+
+      for (const { netPayout, payment, available } of paymentDetails) {
+        if (
+          (netPayout > 0 && totalAvailable - netPayout >= 0) ||
+          (netPayout > 0 && available === 0)
+        ) {
+          const newStatus =
+            payment.status === PaymentStatus.EXECUTED
+              ? PaymentStatus.PAID
+              : PaymentStatus.PROCESSED;
+
+          await this.paymentService.payout({
+            paymentId: payment.id,
+            status: newStatus,
+            paidAmount: netPayout,
+          });
+
+          if (available > 0) {
+            totalAvailable -= netPayout;
+            payments.totalPayout += netPayout;
+            payments.listPayments.push({ id: payment.id, payout: netPayout });
+          }
         }
       }
-    }
 
-    return payments;
+      return payments;
+    } finally {
+      this.isPayoutInProgress = false;
+    }
   }
 }

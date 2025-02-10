@@ -12,6 +12,10 @@ export class StoreService {
     private readonly storeRepository: Repository<Store>,
   ) {}
 
+  async getAllStores(): Promise<Store[]> {
+    return await this.storeRepository.find();
+  }
+
   async createShop(
     createStoreDto: CreateStoreDto,
   ): Promise<CreateStoreResponseDto> {
