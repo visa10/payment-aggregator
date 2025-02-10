@@ -70,9 +70,6 @@ export class PayoutService {
       paymentDetails.push({ payment, netPayout, available });
     }
 
-    console.log('shopPayments', shopPayments);
-    console.log('paymentDetails', paymentDetails);
-
     for (const { netPayout, payment, available } of paymentDetails) {
       if (
         (netPayout > 0 && totalAvailable - netPayout >= 0) ||
