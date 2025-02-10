@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StoreModule } from './store/store.module';
 import { TestModule } from './test/test.module';
 import { PaymentModule } from './payment/payment.module';
+import { ConfigModule } from './config/config.module';
+import { PayoutModule } from './payout/payout.module';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { PaymentModule } from './payment/payment.module';
     StoreModule,
     TestModule,
     PaymentModule,
+    ConfigModule,
+    PayoutModule,
   ],
   controllers: [],
   providers: [],
