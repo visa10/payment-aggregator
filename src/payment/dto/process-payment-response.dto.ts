@@ -5,7 +5,6 @@ export class PaymentDto {
   @ApiProperty({
     description: 'Array of Payment Ids',
     type: [Number],
-    example: [1, 2, 3],
   })
   @IsArray()
   @IsNumber({}, { each: true })

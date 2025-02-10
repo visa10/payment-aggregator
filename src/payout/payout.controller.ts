@@ -8,8 +8,7 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PayoutService } from './payout.service';
 import { StoreService } from '../store/store.service';
-import { PayoutDto } from './dto/payout.dto';
-import { ProcessPayoutResponse } from './payout.types';
+import { ProcessPayoutResponseDto } from './dto/payout-response.dto';
 
 @ApiTags('Payouts')
 @Controller('payouts')
@@ -21,11 +20,19 @@ export class PayoutController {
 
   @Post(':storeId')
   @ApiOperation({ summary: 'Process payout for a store.' })
-  @ApiResponse({ status: 200, description: 'Payout processed successfully.' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Payout processed successfully.',
+    type: ProcessPayoutResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Shop not found',
+  })
   async processPayout(
-    @Param('shopId') { storeId }: PayoutDto,
-  ): Promise<ProcessPayoutResponse> {
-    const store = await this.storeService.findById(storeId);
+    @Param('storeId') storeId: string,
+  ): Promise<ProcessPayoutResponseDto> {
+    const store = await this.storeService.findById(Number(storeId));
     if (!store) {
       throw new HttpException('Shop not found', HttpStatus.NOT_FOUND);
     }

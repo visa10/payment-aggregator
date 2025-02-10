@@ -24,7 +24,7 @@ export class Payment {
   status: PaymentStatus;
 
   // Sum that has already been paid out from this payment
-  @Column({ type: 'float', default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   paidAmount: number;
 
   @CreateDateColumn()

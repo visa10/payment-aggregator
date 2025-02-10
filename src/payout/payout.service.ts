@@ -5,7 +5,8 @@ import { Store } from '../store/entities/store.entity';
 import { Payment } from '../payment/entities/payment.entity';
 import { Config } from '../config/entities/config.entity';
 import { PaymentStatus } from '../payment/payment-status.enum';
-import { PaymentDetails, Payout, ProcessPayoutResponse } from './payout.types';
+import { PaymentDetails } from './payout.types';
+import { ProcessPayoutResponseDto } from './dto/payout-response.dto';
 
 @Injectable()
 export class PayoutService {
@@ -19,10 +20,14 @@ export class PayoutService {
    * net = amount - (A + (B% * amount) + (C% * amount))
    */
   calculateNetPayout(store: Store, payment: Payment, config: Config): number {
-    const systemCommission = config.a + (config.b / 100) * payment.amount;
-    const shopCommission = (store.platformCommission / 100) * payment.amount;
+    const systemCommission =
+      config.a + (config.b / 100) * Number(payment.amount);
+
+    const shopCommission =
+      (store.platformCommission / 100) * Number(payment.amount);
+
     const totalCommission = systemCommission + shopCommission;
-    return payment.amount - totalCommission;
+    return Math.round((payment.amount - totalCommission) * 100) / 100;
   }
 
   /**
@@ -32,17 +37,22 @@ export class PayoutService {
    */
   calculateAvailable(payment: Payment, net: number, config: Config): number {
     if (payment.status === PaymentStatus.PROCESSED) {
-      const hold = (config.d / 100) * payment.amount;
-      return net - hold - payment.paidAmount;
+      const hold = (config.d / 100) * Number(payment.amount);
+      return Math.round((net - hold - Number(payment.paidAmount)) * 100) / 100;
     } else if (payment.status === PaymentStatus.EXECUTED) {
-      return net - payment.paidAmount;
+      return Math.round((net - Number(payment.paidAmount)) * 100) / 100;
     }
     return 0;
   }
 
-  async processPayout(store: Store): Promise<ProcessPayoutResponse> {
+  /**
+   * Process payout for a store.
+   * @param store
+   * @returns ProcessPayoutResponseDto
+   */
+  async processPayout(store: Store): Promise<ProcessPayoutResponseDto> {
     const config = await this.configService.getConfig();
-    const payments: ProcessPayoutResponse = {
+    const payments: ProcessPayoutResponseDto = {
       totalPayout: 0,
       listPayments: [],
     };
@@ -60,11 +70,14 @@ export class PayoutService {
       paymentDetails.push({ payment, netPayout, available });
     }
 
-    for (const { netPayout, payment } of paymentDetails) {
-      if (netPayout > 0 && totalAvailable - netPayout > 0) {
-        totalAvailable -= netPayout;
-        payments.totalPayout += netPayout;
+    console.log('shopPayments', shopPayments);
+    console.log('paymentDetails', paymentDetails);
 
+    for (const { netPayout, payment, available } of paymentDetails) {
+      if (
+        (netPayout > 0 && totalAvailable - netPayout >= 0) ||
+        (netPayout > 0 && available === 0)
+      ) {
         const newStatus =
           payment.status === PaymentStatus.EXECUTED
             ? PaymentStatus.PAID
@@ -76,7 +89,11 @@ export class PayoutService {
           paidAmount: netPayout,
         });
 
-        payments.listPayments.push({ id: payment.id, payout: netPayout });
+        if (available > 0) {
+          totalAvailable -= netPayout;
+          payments.totalPayout += netPayout;
+          payments.listPayments.push({ id: payment.id, payout: netPayout });
+        }
       }
     }
 

@@ -11,8 +11,11 @@ export class StoreController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new shop.' })
-  @ApiResponse({ status: 201, description: 'Shop created successfully.' })
-  @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({
+    status: 201,
+    description: 'Shop created successfully.',
+    type: CreateStoreResponseDto,
+  })
   async createShop(
     @Body() createStoreDto: CreateStoreDto,
   ): Promise<CreateStoreResponseDto> {

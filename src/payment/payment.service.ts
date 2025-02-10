@@ -2,10 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Payment } from './entities/payment.entity';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreatePaymentResponseDto } from './dto/create-payment-response.dto';
 import { PaymentStatus } from './payment-status.enum';
-import { StoreService } from '../store/store.service';
 import { Store } from '../store/entities/store.entity';
 import { PaymentDto } from './dto/process-payment.dto';
 
@@ -14,20 +12,15 @@ export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
-    private readonly storeService: StoreService,
   ) {}
 
-  async createPayment(
-    createPaymentDto: CreatePaymentDto,
-  ): Promise<CreatePaymentResponseDto> {
-    const { storeId, amount } = createPaymentDto;
-
-    const store = await this.storeService.findById(storeId);
-
-    if (!store) {
-      throw new NotFoundException(`Store with ID ${storeId} not found`);
-    }
-
+  async createPayment({
+    store,
+    amount,
+  }: {
+    store: Store;
+    amount: number;
+  }): Promise<CreatePaymentResponseDto> {
     const payment = this.paymentRepository.create({
       amount,
       store,
@@ -36,45 +29,18 @@ export class PaymentService {
     return { paymentId: newPayment.id };
   }
 
-  async setPaymentsProcessed({ paymentIds }: PaymentDto) {
-    const paymentsAccepted = await this.paymentRepository.find({
-      where: { id: In(paymentIds), status: PaymentStatus.ACCEPTED },
-    });
-
-    if (paymentsAccepted.length === 0) {
-      throw new NotFoundException(
-        'No payments found with status ACCEPTED for provided IDs.',
-      );
-    }
-    const updatedIds = paymentsAccepted.map((p) => p.id);
-
+  async setPaymentsProcessed({ paymentIds }: PaymentDto): Promise<void> {
     await this.paymentRepository.update(
-      { id: In(updatedIds) },
+      { id: In(paymentIds), status: PaymentStatus.ACCEPTED },
       { status: PaymentStatus.PROCESSED },
     );
-
-    return { updatedPayments: updatedIds };
   }
 
-  async setPaymentsExecuted({ paymentIds }: PaymentDto) {
-    const paymentsProcessed = await this.paymentRepository.find({
-      where: { id: In(paymentIds), status: PaymentStatus.PROCESSED },
-    });
-
-    if (paymentsProcessed.length === 0) {
-      throw new NotFoundException(
-        'No payments found with status PROCESSED for provided IDs.',
-      );
-    }
-
-    const updatedIds = paymentsProcessed.map((p) => p.id);
-
+  async setPaymentsExecuted({ paymentIds }: PaymentDto): Promise<void> {
     await this.paymentRepository.update(
-      { id: In(updatedIds) },
+      { id: In(paymentIds), status: PaymentStatus.PROCESSED },
       { status: PaymentStatus.EXECUTED },
     );
-
-    return { updatedPayments: updatedIds };
   }
 
   /**
