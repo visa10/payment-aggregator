@@ -1,9 +1,14 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'payment' })
-export class ConfigEntity {
+type ConfigNames = 'storeCommission';
+
+@Entity({ name: 'config' })
+export class Config {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ type: 'varchar' })
+  name: ConfigNames;
 
   @Column({ type: 'float', default: 0 })
   a: number;

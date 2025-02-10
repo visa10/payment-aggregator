@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StoreModule } from './store/store.module';
-import { TestModule } from './test/test.module';
 import { PaymentModule } from './payment/payment.module';
 import { ConfigModule } from './config/config.module';
 import { PayoutModule } from './payout/payout.module';
@@ -19,7 +18,6 @@ import { PayoutModule } from './payout/payout.module';
       synchronize: true,
     }),
     StoreModule,
-    TestModule,
     PaymentModule,
     ConfigModule,
     PayoutModule,

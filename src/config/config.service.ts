@@ -1,31 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConfigEntity } from './entities/config.entity';
+import { Config } from './entities/config.entity';
 import { SetConfigDto } from './dto/set-config.dto';
 
 @Injectable()
 export class ConfigService {
   constructor(
-    @InjectRepository(ConfigEntity)
-    private configRepo: Repository<ConfigEntity>,
+    @InjectRepository(Config)
+    private configRepository: Repository<Config>,
   ) {}
 
   // Retrieve the single global config, or create one if not exists.
-  async getConfig(): Promise<ConfigEntity> {
-    let config = await this.configRepo.findOne({});
+  async getConfig(): Promise<Config> {
+    let config = await this.configRepository.findOne({
+      where: { name: 'storeCommission' },
+    });
+
     if (!config) {
-      config = this.configRepo.create({ a: 0, b: 0, d: 0 });
-      await this.configRepo.save(config);
+      config = this.configRepository.create({
+        name: 'storeCommission',
+        a: 0,
+        b: 0,
+        d: 0,
+      });
+      await this.configRepository.save(config);
     }
     return config;
   }
 
-  async setConfig(setConfigDto: SetConfigDto): Promise<ConfigEntity> {
+  async setConfig(setConfigDto: SetConfigDto): Promise<Config> {
     const config = await this.getConfig();
     config.a = setConfigDto.a;
     config.b = setConfigDto.b;
     config.d = setConfigDto.d;
-    return this.configRepo.save(config);
+    return this.configRepository.save(config);
   }
 }

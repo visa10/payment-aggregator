@@ -3,13 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateStoreResponseDto } from './dto/create-store-response.dto';
 import { CreateStoreDto } from './dto/create-store.dto';
-import { StoreEntity } from './entities/store.entity';
+import { Store } from './entities/store.entity';
 
 @Injectable()
 export class StoreService {
   constructor(
-    @InjectRepository(StoreEntity)
-    private readonly storeRepository: Repository<StoreEntity>,
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
   ) {}
 
   async createShop(
@@ -18,5 +18,9 @@ export class StoreService {
     const store = this.storeRepository.create(createStoreDto);
     const newStore = await this.storeRepository.save(store);
     return { shopId: newStore.id };
+  }
+
+  async findById(id: number): Promise<Store | null> {
+    return this.storeRepository.findOne({ where: { id } });
   }
 }

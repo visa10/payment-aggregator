@@ -6,10 +6,10 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PaymentStatus } from '../payment-status.enum';
-import { StoreEntity } from '../../store/entities/store.entity';
+import { Store } from '../../store/entities/store.entity';
 
 @Entity({ name: 'payment' })
-export class PaymentEntity {
+export class Payment {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -23,9 +23,13 @@ export class PaymentEntity {
   })
   status: PaymentStatus;
 
+  // Sum that has already been paid out from this payment
+  @Column({ type: 'float', default: 0 })
+  paidAmount: number;
+
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToOne(() => StoreEntity, (store) => store.payments)
-  store: StoreEntity;
+  @ManyToOne(() => Store, (store) => store.payments)
+  store: Store;
 }

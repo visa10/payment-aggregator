@@ -1,8 +1,8 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { PaymentEntity } from '../../payment/entities/payment.entity';
+import { Payment } from '../../payment/entities/payment.entity';
 
 @Entity({ name: 'store' })
-export class StoreEntity {
+export class Store {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -15,6 +15,6 @@ export class StoreEntity {
   })
   platformCommission: number;
 
-  @OneToMany(() => PaymentEntity, (payment) => payment.store)
-  payments: PaymentEntity[];
+  @OneToMany(() => Payment, (payment) => payment.store)
+  payments: Payment[];
 }
